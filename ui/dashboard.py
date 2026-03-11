@@ -13,7 +13,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from config import AppConfig, DB_PATH
+from config import AppConfig, DB_PATH, load_preferences, save_preferences
 from database import Database
 
 
@@ -33,10 +33,35 @@ def main() -> None:
     st.title("LinkedIn Job Automation")
 
     config = AppConfig.load()
+    preferences = load_preferences(config.preferences_path)
     db_path = DB_PATH
     database = Database(db_path)
 
     with st.sidebar:
+        st.header("Preferences")
+        keywords_text = st.text_area("Search keywords", value="\n".join(preferences["keywords"]), height=150)
+        locations_text = st.text_area("Locations", value="\n".join(preferences["locations"]), height=100)
+        allowed_text = st.text_area("Allowed role keywords", value="\n".join(preferences["allowed_keywords"]), height=120)
+        blocked_text = st.text_area("Blocked role keywords", value="\n".join(preferences["blocked_keywords"]), height=120)
+        run_times_text = st.text_input("Run times (comma separated HH:MM)", value=", ".join(preferences["run_times"]))
+        daily_limit = st.number_input(
+            "Daily application limit",
+            min_value=1,
+            max_value=50,
+            value=int(preferences["daily_application_limit"]),
+        )
+        if st.button("Save preferences", use_container_width=True):
+            updated_preferences = {
+                "keywords": [line.strip() for line in keywords_text.splitlines() if line.strip()],
+                "locations": [line.strip() for line in locations_text.splitlines() if line.strip()],
+                "allowed_keywords": [line.strip().lower() for line in allowed_text.splitlines() if line.strip()],
+                "blocked_keywords": [line.strip().lower() for line in blocked_text.splitlines() if line.strip()],
+                "run_times": [part.strip() for part in run_times_text.split(",") if part.strip()],
+                "daily_application_limit": int(daily_limit),
+            }
+            save_preferences(updated_preferences, config.preferences_path)
+            st.success("Preferences saved for local background runs.")
+
         st.header("Data Sync")
         if st.button("Refresh background sync", use_container_width=True):
             st.cache_data.clear()

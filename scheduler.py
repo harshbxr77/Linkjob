@@ -4,12 +4,15 @@ import time
 
 import schedule
 
+from config import AppConfig, load_preferences
 from main import run
 
 
 def start_scheduler() -> None:
-    schedule.every().day.at("08:00").do(run)
-    schedule.every().day.at("20:00").do(run)
+    config = AppConfig.load()
+    preferences = load_preferences(config.preferences_path)
+    for run_time in preferences.get("run_times", ["08:00", "20:00"]):
+        schedule.every().day.at(run_time).do(run)
 
     while True:
         schedule.run_pending()

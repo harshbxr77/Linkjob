@@ -47,6 +47,23 @@ Each imported application record now keeps:
 - applied date
 - job link
 
+## Local Preferences And Background Runs
+
+The local dashboard sidebar now lets you save:
+
+- search keywords
+- locations
+- allowed keywords
+- blocked keywords
+- run times
+- daily application limit
+
+These preferences are stored in `data/preferences.json` and used by:
+
+- `python main.py run`
+- `python main.py scheduler`
+- the launcher background scheduler option
+
 ## Remember Login
 
 The app now reuses your LinkedIn login across runs using:
@@ -63,7 +80,7 @@ Use one of these launchers on Windows:
 - `Launch-LinkJob.bat`
 - `powershell -ExecutionPolicy Bypass -File .\launch-linkjob.ps1`
 
-The launcher gives you a menu for bot run, dashboard, scheduler, bootstrap, and dry-run.
+The launcher gives you a menu for bot run, dashboard, scheduler, background scheduler, bootstrap, and dry-run.
 
 To start the dashboard:
 

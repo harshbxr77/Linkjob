@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -15,6 +16,7 @@ SESSION_FILE = DATA_DIR / "linkedin_session.enc"
 DB_PATH = DATA_DIR / "jobs.db"
 EXPORT_PATH = DATA_DIR / "dashboard_export.json"
 PUBLIC_EXPORT_PATH = SYNC_DIR / "dashboard_data.json"
+PREFERENCES_PATH = DATA_DIR / "preferences.json"
 
 
 def _as_bool(value: str | None, default: bool = False) -> bool:
@@ -42,6 +44,7 @@ class AppConfig:
     session_file: Path = field(default=SESSION_FILE)
     export_path: Path = field(default=EXPORT_PATH)
     public_export_path: Path = field(default=PUBLIC_EXPORT_PATH)
+    preferences_path: Path = field(default=PREFERENCES_PATH)
     default_location: str = "India"
 
     @classmethod
@@ -82,3 +85,60 @@ class AppConfig:
         if missing:
             missing_text = ", ".join(missing)
             raise ValueError(f"Missing required environment variables: {missing_text}")
+
+
+DEFAULT_PREFERENCES = {
+    "keywords": [
+        "Technology Manager",
+        "Product Manager",
+        "Technology Consultant",
+        "Risk Consultant",
+        "Digital Transformation",
+        "Strategy Consulting",
+        "Program Manager",
+        "IT Strategy",
+    ],
+    "locations": ["India", "Bangalore", "Mumbai", "Remote"],
+    "allowed_keywords": [
+        "technology",
+        "product",
+        "consulting",
+        "digital transformation",
+        "risk",
+        "strategy",
+        "program manager",
+        "technology manager",
+        "product manager",
+        "technology consultant",
+        "risk consultant",
+        "it strategy",
+    ],
+    "blocked_keywords": [
+        "marketing",
+        "sales",
+        "finance",
+        "accounting",
+        "hr",
+        "human resources",
+        "recruitment",
+        "recruiter",
+    ],
+    "run_times": ["08:00", "20:00"],
+    "daily_application_limit": 10,
+}
+
+
+def load_preferences(path: Path = PREFERENCES_PATH) -> dict:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists():
+        path.write_text(json.dumps(DEFAULT_PREFERENCES, indent=2), encoding="utf-8")
+        return DEFAULT_PREFERENCES.copy()
+    data = json.loads(path.read_text(encoding="utf-8"))
+    merged = DEFAULT_PREFERENCES.copy()
+    merged.update(data)
+    return merged
+
+
+def save_preferences(preferences: dict, path: Path = PREFERENCES_PATH) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(preferences, indent=2), encoding="utf-8")

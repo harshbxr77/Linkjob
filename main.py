@@ -5,12 +5,12 @@ import subprocess
 import sys
 from pathlib import Path
 
-from config import AppConfig
+from config import AppConfig, load_preferences
 from ai_matcher import match_resume_to_job
 from database import Database
 from job_apply import apply_to_job
 from job_filter import filter_job
-from job_scraper import SEARCH_KEYWORDS, SEARCH_LOCATIONS, scrape_jobs
+from job_scraper import scrape_jobs
 from linkedin_login import login_to_linkedin
 
 
@@ -33,6 +33,7 @@ def parse_args() -> argparse.Namespace:
 
 def run(dry_run: bool = False) -> None:
     config = AppConfig.load()
+    preferences = load_preferences(config.preferences_path)
     if not dry_run and not config.resume_path.exists():
         raise FileNotFoundError(f"Resume file not found: {config.resume_path}")
 
@@ -45,11 +46,15 @@ def run(dry_run: bool = False) -> None:
 
     applied_today = database.jobs_applied_today()
     try:
-        for keyword in SEARCH_KEYWORDS:
-            for location in SEARCH_LOCATIONS:
+        for keyword in preferences["keywords"]:
+            for location in preferences["locations"]:
                 jobs = scrape_jobs(driver, keyword, location)
                 for job in jobs:
-                    decision = filter_job(job)
+                    decision = filter_job(
+                        job,
+                        allowed_keywords=preferences["allowed_keywords"],
+                        blocked_keywords=preferences["blocked_keywords"],
+                    )
                     if not decision.accepted:
                         continue
 
@@ -64,7 +69,7 @@ def run(dry_run: bool = False) -> None:
                     should_apply = (
                         match.match_score > 65
                         and bool(job.get("easy_apply"))
-                        and applied_today < config.daily_application_limit
+                        and applied_today < int(preferences["daily_application_limit"])
                     )
                     if not should_apply:
                         continue
