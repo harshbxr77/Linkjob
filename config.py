@@ -17,6 +17,7 @@ DB_PATH = DATA_DIR / "jobs.db"
 EXPORT_PATH = DATA_DIR / "dashboard_export.json"
 PUBLIC_EXPORT_PATH = SYNC_DIR / "dashboard_data.json"
 PREFERENCES_PATH = DATA_DIR / "preferences.json"
+APP_LOG_PATH = DATA_DIR / "app.log"
 
 
 def _as_bool(value: str | None, default: bool = False) -> bool:
@@ -45,6 +46,7 @@ class AppConfig:
     export_path: Path = field(default=EXPORT_PATH)
     public_export_path: Path = field(default=PUBLIC_EXPORT_PATH)
     preferences_path: Path = field(default=PREFERENCES_PATH)
+    app_log_path: Path = field(default=APP_LOG_PATH)
     default_location: str = "India"
 
     @classmethod
@@ -85,6 +87,19 @@ class AppConfig:
         if missing:
             missing_text = ", ".join(missing)
             raise ValueError(f"Missing required environment variables: {missing_text}")
+
+    def has_real_credentials(self) -> bool:
+        placeholder_fragments = {
+            "your-email@example.com",
+            "your-password",
+            "replace-with-a-32-byte-url-safe-base64-key",
+        }
+        values = {
+            self.linkedin_email.strip(),
+            self.linkedin_password.strip(),
+            self.linkedin_session_key.strip(),
+        }
+        return all(value and value not in placeholder_fragments for value in values)
 
 
 DEFAULT_PREFERENCES = {

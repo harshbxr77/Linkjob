@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import traceback
 import subprocess
 import sys
 from pathlib import Path
@@ -98,6 +99,17 @@ def run(dry_run: bool = False) -> None:
         push_sync_file(config.public_export_path)
 
 
+def run_with_logging(dry_run: bool = False) -> int:
+    config = AppConfig.load()
+    try:
+        run(dry_run=dry_run)
+        config.app_log_path.write_text("Last run completed successfully.\n", encoding="utf-8")
+        return 0
+    except Exception:
+        config.app_log_path.write_text(traceback.format_exc(), encoding="utf-8")
+        raise
+
+
 def export_dashboard_data() -> None:
     config = AppConfig.load()
     database = Database(config.db_path)
@@ -122,7 +134,7 @@ def push_sync_file(sync_file: Path) -> None:
 if __name__ == "__main__":
     args = parse_args()
     if args.command == "run":
-        run(dry_run=args.dry_run)
+        raise SystemExit(run_with_logging(dry_run=args.dry_run))
     elif args.command == "dashboard":
         raise SystemExit(
             subprocess.call([sys.executable, "-m", "streamlit", "run", "ui/dashboard.py"])

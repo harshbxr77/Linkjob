@@ -63,6 +63,17 @@ def build_preferences_payload(
     }
 
 
+def runtime_blockers(config: AppConfig, preferences: dict) -> list[str]:
+    blockers: list[str] = []
+    if not config.has_real_credentials():
+        blockers.append("LinkedIn credentials in .env are still placeholder values.")
+    if not config.resume_path.exists():
+        blockers.append(f"Resume file is missing: {config.resume_path}")
+    if not bool(preferences.get("auto_submit", False)):
+        blockers.append("Auto-apply is off, so the bot will stop at review instead of submitting.")
+    return blockers
+
+
 def main() -> None:
     st.set_page_config(page_title="LinkedIn Job Automation", layout="wide")
     st.title("LinkedIn Job Automation")
@@ -107,7 +118,14 @@ def main() -> None:
         st.header("LinkedIn Automation")
         session_detected = config.session_file.exists() or config.browser_profile_dir.exists()
         st.caption(f"Saved session detected: {'Yes' if session_detected else 'No'}")
-        st.caption(f"Credentials configured: {'Yes' if bool(config.linkedin_email and config.linkedin_password) else 'No'}")
+        st.caption(f"Credentials configured: {'Yes' if config.has_real_credentials() else 'No'}")
+        blockers = runtime_blockers(config, preferences)
+        if blockers:
+            for blocker in blockers:
+                st.warning(blocker)
+        if config.app_log_path.exists():
+            with st.expander("Last local run log"):
+                st.code(config.app_log_path.read_text(encoding="utf-8"))
         if is_cloud:
             st.info("LinkedIn login and auto-apply run only from your local machine. The cloud app is dashboard-only.")
         else:
@@ -122,6 +140,12 @@ def main() -> None:
                     bool(auto_submit),
                 )
                 save_preferences(updated_preferences, config.preferences_path)
+                blockers = runtime_blockers(config, updated_preferences)
+                fatal_blockers = [item for item in blockers if "placeholder" in item.lower() or "missing" in item.lower()]
+                if fatal_blockers:
+                    for blocker in fatal_blockers:
+                        st.error(blocker)
+                    st.stop()
                 login_opened = False
                 if not session_detected:
                     try:
