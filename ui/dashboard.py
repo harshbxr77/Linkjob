@@ -12,6 +12,7 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 from config import DB_PATH
+from database import Database
 
 
 def load_frame(query: str, db_path: Path) -> pd.DataFrame:
@@ -25,8 +26,8 @@ def main() -> None:
 
     db_path = DB_PATH
     if not db_path.exists():
-        st.warning("Database not found. Run the bot first to create application data.")
-        return
+        Database(db_path)
+        st.info("No application data yet. The dashboard is ready and will update after jobs are scanned.")
 
     summary_df = load_frame(
         """
