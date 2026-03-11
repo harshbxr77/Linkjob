@@ -19,6 +19,7 @@ PUBLIC_EXPORT_PATH = SYNC_DIR / "dashboard_data.json"
 PREFERENCES_PATH = DATA_DIR / "preferences.json"
 APP_LOG_PATH = DATA_DIR / "app.log"
 LOCAL_SETTINGS_PATH = DATA_DIR / "local_settings.json"
+BOT_LOCK_PATH = DATA_DIR / "bot.lock"
 
 
 def _as_bool(value: str | None, default: bool = False) -> bool:
@@ -51,6 +52,7 @@ class AppConfig:
     preferences_path: Path = field(default=PREFERENCES_PATH)
     app_log_path: Path = field(default=APP_LOG_PATH)
     local_settings_path: Path = field(default=LOCAL_SETTINGS_PATH)
+    bot_lock_path: Path = field(default=BOT_LOCK_PATH)
     default_location: str = "India"
 
     @classmethod

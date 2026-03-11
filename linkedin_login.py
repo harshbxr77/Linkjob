@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import tempfile
 import time
 from pathlib import Path
 
@@ -26,10 +27,9 @@ def build_driver(config: AppConfig) -> webdriver.Chrome:
     if config.headless:
         options.add_argument("--headless=new")
     config.browser_profile_dir.mkdir(parents=True, exist_ok=True)
-    runtime_profile_dir = config.browser_profile_dir / "runtime"
-    if runtime_profile_dir.exists():
-        shutil.rmtree(runtime_profile_dir, ignore_errors=True)
-    runtime_profile_dir.mkdir(parents=True, exist_ok=True)
+    runtime_profile_dir = Path(
+        tempfile.mkdtemp(prefix="runtime-", dir=str(config.browser_profile_dir))
+    )
     if config.browser_binary:
         options.binary_location = str(config.browser_binary)
     options.add_argument("--start-maximized")
@@ -43,7 +43,20 @@ def build_driver(config: AppConfig) -> webdriver.Chrome:
     options.add_argument("--disable-gpu")
     options.add_argument(f"--user-data-dir={runtime_profile_dir}")
     service = ChromeService(executable_path=str(config.driver_path)) if config.driver_path else ChromeService()
-    return webdriver.Chrome(service=service, options=options)
+    driver = webdriver.Chrome(service=service, options=options)
+    setattr(driver, "_runtime_profile_dir", runtime_profile_dir)
+    return driver
+
+
+def cleanup_driver(driver: webdriver.Chrome | None) -> None:
+    if driver is None:
+        return
+    runtime_profile_dir = getattr(driver, "_runtime_profile_dir", None)
+    try:
+        driver.quit()
+    finally:
+        if runtime_profile_dir:
+            shutil.rmtree(runtime_profile_dir, ignore_errors=True)
 
 
 def _cipher(session_key: str) -> Fernet:
