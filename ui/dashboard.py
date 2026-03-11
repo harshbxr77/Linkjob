@@ -16,7 +16,15 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from config import AppConfig, DB_PATH, load_local_settings, load_preferences, save_local_settings, save_preferences
+from config import (
+    AppConfig,
+    DB_PATH,
+    default_application_profile,
+    load_local_settings,
+    load_preferences,
+    save_local_settings,
+    save_preferences,
+)
 from database import Database
 
 
@@ -110,6 +118,8 @@ def main() -> None:
 
     config = AppConfig.load()
     local_settings = load_local_settings(config.local_settings_path)
+    application_profile = default_application_profile()
+    application_profile.update(local_settings.get("application_profile", {}))
     preferences = load_preferences(config.preferences_path)
     db_path = DB_PATH
     database = Database(db_path)
@@ -134,10 +144,47 @@ def main() -> None:
             disabled=is_cloud,
             help="Uploaded resume is stored locally inside the project and used for Easy Apply.",
         )
+        current_resume = local_settings.get("resume_path", "")
+        if current_resume:
+            st.caption(f"Current resume: {current_resume}")
+
+        st.subheader("Application Profile")
+        full_name = st.text_input("Full name", value=application_profile.get("full_name", ""), disabled=is_cloud)
+        phone = st.text_input("Phone", value=application_profile.get("phone", ""), disabled=is_cloud)
+        city = st.text_input("City", value=application_profile.get("city", ""), disabled=is_cloud)
+        linkedin_url = st.text_input("LinkedIn profile URL", value=application_profile.get("linkedin_url", ""), disabled=is_cloud)
+        years_experience = st.text_input("Years of experience", value=application_profile.get("years_experience", ""), disabled=is_cloud)
+        work_authorization = st.selectbox(
+            "Authorized to work",
+            options=["Yes", "No"],
+            index=0 if application_profile.get("work_authorization", "Yes") == "Yes" else 1,
+            disabled=is_cloud,
+        )
+        requires_sponsorship = st.selectbox(
+            "Requires sponsorship",
+            options=["No", "Yes"],
+            index=0 if application_profile.get("requires_sponsorship", "No") == "No" else 1,
+            disabled=is_cloud,
+        )
+        notice_period_days = st.text_input(
+            "Notice period (days)",
+            value=application_profile.get("notice_period_days", ""),
+            disabled=is_cloud,
+        )
         if st.button("Save LinkedIn details", use_container_width=True, disabled=is_cloud):
             updates = {
                 "linkedin_email": linkedin_email.strip(),
                 "linkedin_password": linkedin_password,
+                "application_profile": {
+                    "full_name": full_name.strip(),
+                    "phone": phone.strip(),
+                    "city": city.strip(),
+                    "linkedin_url": linkedin_url.strip(),
+                    "years_experience": years_experience.strip(),
+                    "work_authorization": work_authorization,
+                    "requires_sponsorship": requires_sponsorship,
+                    "notice_period_days": notice_period_days.strip(),
+                },
             }
             if uploaded_resume is not None:
                 target_path = config.local_settings_path.parent / uploaded_resume.name

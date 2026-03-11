@@ -179,3 +179,16 @@ def save_local_settings(settings: dict, path: Path = LOCAL_SETTINGS_PATH) -> Non
     existing.update(settings)
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(existing, indent=2), encoding="utf-8")
+
+
+def default_application_profile() -> dict:
+    return {
+        "full_name": "",
+        "phone": "",
+        "city": "",
+        "linkedin_url": "",
+        "years_experience": "",
+        "work_authorization": "Yes",
+        "requires_sponsorship": "No",
+        "notice_period_days": "",
+    }

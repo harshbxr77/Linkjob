@@ -6,7 +6,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-from config import AppConfig, load_preferences
+from config import AppConfig, load_local_settings, load_preferences
 from ai_matcher import match_resume_to_job
 from database import Database
 from job_apply import apply_to_job
@@ -34,6 +34,7 @@ def parse_args() -> argparse.Namespace:
 
 def run(dry_run: bool = False) -> None:
     config = AppConfig.load()
+    local_settings = load_local_settings(config.local_settings_path)
     preferences = load_preferences(config.preferences_path)
     if not dry_run and not config.resume_path.exists():
         raise FileNotFoundError(f"Resume file not found: {config.resume_path}")
@@ -79,6 +80,7 @@ def run(dry_run: bool = False) -> None:
                         driver=driver,
                         job_link=job["job_link"],
                         resume_path=config.resume_path,
+                        profile=local_settings.get("application_profile", {}),
                         auto_submit=bool(preferences.get("auto_submit", config.auto_submit)),
                     )
                     if success:
