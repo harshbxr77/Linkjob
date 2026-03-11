@@ -25,11 +25,19 @@ def build_driver(config: AppConfig) -> webdriver.Chrome:
     if config.headless:
         options.add_argument("--headless=new")
     config.browser_profile_dir.mkdir(parents=True, exist_ok=True)
+    if config.browser_binary:
+        options.binary_location = str(config.browser_binary)
     options.add_argument("--start-maximized")
     options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("--remote-debugging-port=0")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--no-first-run")
+    options.add_argument("--no-default-browser-check")
+    options.add_argument("--disable-background-networking")
+    options.add_argument("--disable-gpu")
     options.add_argument(f"--user-data-dir={config.browser_profile_dir}")
     options.add_argument("--profile-directory=Default")
-    service = ChromeService()
+    service = ChromeService(executable_path=str(config.driver_path)) if config.driver_path else ChromeService()
     return webdriver.Chrome(service=service, options=options)
 
 

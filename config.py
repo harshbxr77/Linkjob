@@ -35,6 +35,8 @@ class AppConfig:
     openai_api_key: str | None
     openai_model: str
     browser: str
+    driver_path: Path | None
+    browser_binary: Path | None
     headless: bool
     auto_submit: bool
     daily_application_limit: int
@@ -66,6 +68,8 @@ class AppConfig:
             openai_api_key=os.getenv("OPENAI_API_KEY"),
             openai_model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
             browser=os.getenv("LINKEDIN_DRIVER", "chrome").strip().lower(),
+            driver_path=((BASE_DIR / os.getenv("LINKEDIN_DRIVER_PATH")).resolve() if os.getenv("LINKEDIN_DRIVER_PATH") else None),
+            browser_binary=(Path(os.getenv("LINKEDIN_BROWSER_BINARY")).resolve() if os.getenv("LINKEDIN_BROWSER_BINARY") else None),
             headless=_as_bool(os.getenv("LINKEDIN_HEADLESS"), default=False),
             auto_submit=_as_bool(os.getenv("LINKEDIN_AUTO_SUBMIT"), default=False),
             daily_application_limit=int(os.getenv("LINKEDIN_DAILY_APPLICATION_LIMIT", "10")),
