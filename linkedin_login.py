@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import time
 from pathlib import Path
 
@@ -25,18 +26,22 @@ def build_driver(config: AppConfig) -> webdriver.Chrome:
     if config.headless:
         options.add_argument("--headless=new")
     config.browser_profile_dir.mkdir(parents=True, exist_ok=True)
+    runtime_profile_dir = config.browser_profile_dir / "runtime"
+    if runtime_profile_dir.exists():
+        shutil.rmtree(runtime_profile_dir, ignore_errors=True)
+    runtime_profile_dir.mkdir(parents=True, exist_ok=True)
     if config.browser_binary:
         options.binary_location = str(config.browser_binary)
     options.add_argument("--start-maximized")
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--remote-debugging-port=0")
     options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--no-sandbox")
     options.add_argument("--no-first-run")
     options.add_argument("--no-default-browser-check")
     options.add_argument("--disable-background-networking")
     options.add_argument("--disable-gpu")
-    options.add_argument(f"--user-data-dir={config.browser_profile_dir}")
-    options.add_argument("--profile-directory=Default")
+    options.add_argument(f"--user-data-dir={runtime_profile_dir}")
     service = ChromeService(executable_path=str(config.driver_path)) if config.driver_path else ChromeService()
     return webdriver.Chrome(service=service, options=options)
 
@@ -88,11 +93,6 @@ def handle_2fa(driver: webdriver.Chrome, timeout_seconds: int = 180) -> None:
 def login_to_linkedin(config: AppConfig) -> webdriver.Chrome:
     config.validate()
     driver = build_driver(config)
-
-    driver.get(LINKEDIN_FEED_URL)
-    time.sleep(2)
-    if "feed" in driver.current_url:
-        return driver
 
     if load_session(driver, config.session_file, config.linkedin_session_key):
         return driver
