@@ -12,6 +12,7 @@ DATA_DIR = BASE_DIR / "data"
 UI_DIR = BASE_DIR / "ui"
 SESSION_FILE = DATA_DIR / "linkedin_session.enc"
 DB_PATH = DATA_DIR / "jobs.db"
+EXPORT_PATH = DATA_DIR / "dashboard_export.json"
 
 
 def _as_bool(value: str | None, default: bool = False) -> bool:
@@ -35,6 +36,7 @@ class AppConfig:
     browser_profile_dir: Path
     db_path: Path = field(default=DB_PATH)
     session_file: Path = field(default=SESSION_FILE)
+    export_path: Path = field(default=EXPORT_PATH)
     default_location: str = "India"
 
     @classmethod

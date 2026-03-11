@@ -20,6 +20,18 @@ This project provides a Python-based workflow for:
 6. Run `python main.py --dry-run` to verify local setup.
 7. Run `python main.py`.
 
+## Cloud Data Sync
+
+The deployed Streamlit dashboard cannot read your local SQLite file directly. To move your local bot data into the cloud dashboard:
+
+1. Run the bot locally with `python main.py run`
+2. Export dashboard data with `python main.py export`
+3. This creates `data/dashboard_export.json`
+4. Open the deployed dashboard
+5. Use the sidebar uploader to import that JSON file
+
+The local bot also refreshes the export file automatically after a normal run.
+
 ## Remember Login
 
 The app now reuses your LinkedIn login across runs using:

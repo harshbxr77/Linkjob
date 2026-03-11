@@ -19,7 +19,7 @@ def parse_args() -> argparse.Namespace:
         "command",
         nargs="?",
         default="run",
-        choices=["run", "dashboard", "scheduler", "bootstrap"],
+        choices=["run", "dashboard", "scheduler", "bootstrap", "export"],
         help="Command to execute.",
     )
     parser.add_argument(
@@ -84,6 +84,16 @@ def run(dry_run: bool = False) -> None:
     finally:
         driver.quit()
 
+    exported_path = database.export_snapshot(config.export_path)
+    print(f"Dashboard export updated: {exported_path}")
+
+
+def export_dashboard_data() -> None:
+    config = AppConfig.load()
+    database = Database(config.db_path)
+    exported_path = database.export_snapshot(config.export_path)
+    print(f"Dashboard export written to: {exported_path}")
+
 
 if __name__ == "__main__":
     args = parse_args()
@@ -101,3 +111,5 @@ if __name__ == "__main__":
         from bootstrap import main as bootstrap_main
 
         bootstrap_main()
+    elif args.command == "export":
+        export_dashboard_data()

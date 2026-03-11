@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 from contextlib import contextmanager
 from pathlib import Path
@@ -176,3 +177,86 @@ class Database:
                 "companies": companies,
                 "recent_jobs": recent_jobs,
             }
+
+    def export_snapshot(self, export_path: Path) -> Path:
+        with self.connect() as connection:
+            jobs = connection.execute(
+                """
+                SELECT id, job_title, company, location, job_description, job_link,
+                       easy_apply, posted_date, match_score, applied_status, date_applied
+                FROM jobs
+                ORDER BY id ASC
+                """
+            ).fetchall()
+            applications = connection.execute(
+                """
+                SELECT id, job_id, resume_used, cover_letter, response_status, created_at
+                FROM applications
+                ORDER BY id ASC
+                """
+            ).fetchall()
+
+        export_path.parent.mkdir(parents=True, exist_ok=True)
+        export_path.write_text(
+            json.dumps({"jobs": jobs, "applications": applications}, indent=2),
+            encoding="utf-8",
+        )
+        return export_path
+
+    def import_snapshot(self, payload: bytes) -> None:
+        data = json.loads(payload.decode("utf-8"))
+        jobs = data.get("jobs", [])
+        applications = data.get("applications", [])
+        job_id_map: dict[int, int] = {}
+
+        for job in jobs:
+            normalized_job = {
+                "job_title": job["job_title"],
+                "company": job["company"],
+                "location": job.get("location"),
+                "job_description": job.get("job_description"),
+                "job_link": job["job_link"],
+                "easy_apply": job.get("easy_apply"),
+                "posted_date": job.get("posted_date"),
+                "match_score": job.get("match_score"),
+                "applied_status": job.get("applied_status", "pending"),
+                "date_applied": job.get("date_applied"),
+            }
+            new_job_id = self.upsert_job(normalized_job)
+            if normalized_job["applied_status"] == "applied":
+                self.mark_applied(normalized_job["job_link"])
+            elif normalized_job["applied_status"] == "reviewed":
+                self.mark_reviewed(normalized_job["job_link"])
+            old_id = int(job.get("id", new_job_id))
+            job_id_map[old_id] = new_job_id
+
+        with self.connect() as connection:
+            for application in applications:
+                mapped_job_id = job_id_map.get(int(application["job_id"]))
+                if mapped_job_id is None:
+                    continue
+                exists = connection.execute(
+                    """
+                    SELECT 1
+                    FROM applications
+                    WHERE job_id = ? AND COALESCE(resume_used, '') = COALESCE(?, '')
+                    """,
+                    (mapped_job_id, application.get("resume_used")),
+                ).fetchone()
+                if exists:
+                    continue
+                connection.execute(
+                    """
+                    INSERT INTO applications (
+                        job_id, resume_used, cover_letter, response_status, created_at
+                    )
+                    VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        mapped_job_id,
+                        application.get("resume_used"),
+                        application.get("cover_letter"),
+                        application.get("response_status", "pending"),
+                        application.get("created_at"),
+                    ),
+                )
