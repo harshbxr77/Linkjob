@@ -36,7 +36,10 @@ def run(dry_run: bool = False) -> None:
     config = AppConfig.load()
     local_settings = load_local_settings(config.local_settings_path)
     preferences = load_preferences(config.preferences_path)
-    if not dry_run and not config.resume_path.exists():
+    use_uploaded_resume = (
+        local_settings.get("application_profile", {}).get("resume_source") == "uploaded_resume"
+    )
+    if not dry_run and use_uploaded_resume and not config.resume_path.exists():
         raise FileNotFoundError(f"Resume file not found: {config.resume_path}")
 
     database = Database(config.db_path)
@@ -68,10 +71,8 @@ def run(dry_run: bool = False) -> None:
                     job["match_score"] = match.match_score
                     job_id = database.upsert_job(job)
 
-                    should_apply = (
-                        match.match_score > 65
-                        and bool(job.get("easy_apply"))
-                        and applied_today < int(preferences["daily_application_limit"])
+                    should_apply = bool(job.get("easy_apply")) and applied_today < int(
+                        preferences["daily_application_limit"]
                     )
                     if not should_apply:
                         continue
@@ -79,12 +80,16 @@ def run(dry_run: bool = False) -> None:
                     success = apply_to_job(
                         driver=driver,
                         job_link=job["job_link"],
-                        resume_path=config.resume_path,
+                        resume_path=config.resume_path if use_uploaded_resume else None,
                         profile=local_settings.get("application_profile", {}),
                         auto_submit=bool(preferences.get("auto_submit", config.auto_submit)),
                     )
                     if success:
-                        database.create_application(job_id, str(config.resume_path), None)
+                        database.create_application(
+                            job_id,
+                            str(config.resume_path) if use_uploaded_resume else "linkedin_latest",
+                            None,
+                        )
                         if bool(preferences.get("auto_submit", config.auto_submit)):
                             database.mark_applied(job["job_link"])
                             applied_today += 1

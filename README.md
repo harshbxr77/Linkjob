@@ -76,6 +76,12 @@ That control is local-machine only. It opens LinkedIn login if needed and starts
 
 LinkedIn email, password, and uploaded resume path are stored locally in `data/local_settings.json`, which is ignored by git.
 
+Default apply behavior:
+
+- apply to every filtered `Easy Apply` job that matches your allowed keywords
+- use the latest resume already stored on LinkedIn by default
+- only use an uploaded local resume if you explicitly switch the resume source to `Uploaded resume override`
+
 ## Start At Login
 
 To register the background scheduler so it starts automatically when you sign in on Windows:

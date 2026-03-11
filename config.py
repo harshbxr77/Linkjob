@@ -191,4 +191,5 @@ def default_application_profile() -> dict:
         "work_authorization": "Yes",
         "requires_sponsorship": "No",
         "notice_period_days": "",
+        "resume_source": "linkedin_latest",
     }

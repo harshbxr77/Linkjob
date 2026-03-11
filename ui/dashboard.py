@@ -75,7 +75,9 @@ def runtime_blockers(config: AppConfig, preferences: dict) -> list[str]:
     blockers: list[str] = []
     if not config.has_real_credentials():
         blockers.append("LinkedIn credentials are missing or still placeholder values.")
-    if not config.resume_path.exists():
+    local_settings = load_local_settings(config.local_settings_path)
+    use_uploaded_resume = local_settings.get("application_profile", {}).get("resume_source") == "uploaded_resume"
+    if use_uploaded_resume and not config.resume_path.exists():
         blockers.append(f"Resume file is missing: {config.resume_path}")
     if not bool(preferences.get("auto_submit", False)):
         blockers.append("Auto-apply is off, so the bot will stop at review instead of submitting.")
@@ -96,8 +98,12 @@ def setup_status(config: AppConfig, preferences: dict) -> list[tuple[str, bool, 
         ),
         (
             "Resume file",
-            config.resume_path.exists(),
-            f"Upload your resume in the dashboard or place it at {config.resume_path}",
+            (
+                load_local_settings(config.local_settings_path).get("application_profile", {}).get("resume_source")
+                != "uploaded_resume"
+            )
+            or config.resume_path.exists(),
+            "Default mode uses the latest LinkedIn resume. Upload a file only if you switch to uploaded resume mode.",
         ),
         (
             "Auto-apply mode",
@@ -139,10 +145,10 @@ def main() -> None:
             disabled=is_cloud,
         )
         uploaded_resume = st.file_uploader(
-            "Resume upload",
+            "Optional uploaded resume override",
             type=["pdf", "doc", "docx"],
             disabled=is_cloud,
-            help="Uploaded resume is stored locally inside the project and used for Easy Apply.",
+            help="Default mode uses the latest resume already on LinkedIn. Upload a file only if you want to override that behavior.",
         )
         current_resume = local_settings.get("resume_path", "")
         if current_resume:
@@ -171,6 +177,12 @@ def main() -> None:
             value=application_profile.get("notice_period_days", ""),
             disabled=is_cloud,
         )
+        resume_source_label = st.selectbox(
+            "Resume source",
+            options=["Latest LinkedIn resume", "Uploaded resume override"],
+            index=0 if application_profile.get("resume_source", "linkedin_latest") == "linkedin_latest" else 1,
+            disabled=is_cloud,
+        )
         if st.button("Save LinkedIn details", use_container_width=True, disabled=is_cloud):
             updates = {
                 "linkedin_email": linkedin_email.strip(),
@@ -184,6 +196,9 @@ def main() -> None:
                     "work_authorization": work_authorization,
                     "requires_sponsorship": requires_sponsorship,
                     "notice_period_days": notice_period_days.strip(),
+                    "resume_source": "linkedin_latest"
+                    if resume_source_label == "Latest LinkedIn resume"
+                    else "uploaded_resume",
                 },
             }
             if uploaded_resume is not None:

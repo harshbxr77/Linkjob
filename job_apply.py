@@ -30,7 +30,9 @@ def _existing_resume_present(driver: WebDriver, resume_path: Path) -> bool:
     return resume_path.name.lower() in page or "resume" in page and "uploaded" in page
 
 
-def _upload_resume_if_needed(driver: WebDriver, resume_path: Path) -> None:
+def _upload_resume_if_needed(driver: WebDriver, resume_path: Path | None) -> None:
+    if resume_path is None:
+        return
     if _existing_resume_present(driver, resume_path):
         return
     try:
@@ -39,6 +41,27 @@ def _upload_resume_if_needed(driver: WebDriver, resume_path: Path) -> None:
         _human_delay()
     except NoSuchElementException:
         pass
+
+
+def _select_existing_linkedin_resume(driver: WebDriver) -> None:
+    selectors = [
+        "//label[contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'resume')]",
+        "//div[contains(@class, 'jobs-document-upload-redesign-card')]",
+        "//div[contains(@class, 'jobs-resume-picker')]//label",
+        "//input[@type='radio']/following-sibling::label",
+    ]
+    for xpath in selectors:
+        try:
+            candidates = driver.find_elements(By.XPATH, xpath)
+            for candidate in candidates:
+                text = _normalize(candidate.text)
+                if not text or "upload" in text:
+                    continue
+                driver.execute_script("arguments[0].click();", candidate)
+                _human_delay()
+                return
+        except Exception:
+            continue
 
 
 def _field_value(profile: dict[str, str], context: str) -> str | None:
@@ -123,7 +146,14 @@ def _fill_choice_fields(driver: WebDriver, profile: dict[str, str]) -> None:
             _click_radio_or_option(driver, ("no",))
 
 
-def _fill_easy_apply_step(driver: WebDriver, resume_path: Path, profile: dict[str, str]) -> None:
+def _fill_easy_apply_step(
+    driver: WebDriver,
+    resume_path: Path | None,
+    profile: dict[str, str],
+    use_linkedin_resume: bool,
+) -> None:
+    if use_linkedin_resume:
+        _select_existing_linkedin_resume(driver)
     _upload_resume_if_needed(driver, resume_path)
     _fill_text_fields(driver, profile)
     _fill_choice_fields(driver, profile)
@@ -132,11 +162,12 @@ def _fill_easy_apply_step(driver: WebDriver, resume_path: Path, profile: dict[st
 def apply_to_job(
     driver: WebDriver,
     job_link: str,
-    resume_path: Path,
+    resume_path: Path | None,
     profile: dict[str, str] | None = None,
     auto_submit: bool = False,
 ) -> bool:
     profile = profile or {}
+    use_linkedin_resume = profile.get("resume_source", "linkedin_latest") == "linkedin_latest"
     driver.get(job_link)
     wait = WebDriverWait(driver, 10)
     _human_delay()
@@ -153,11 +184,11 @@ def apply_to_job(
     except TimeoutException:
         return False
 
-    _fill_easy_apply_step(driver, resume_path, profile)
+    _fill_easy_apply_step(driver, resume_path, profile, use_linkedin_resume)
 
     # Conservative workflow: advance known form steps, then stop unless auto-submit is enabled.
     while True:
-        _fill_easy_apply_step(driver, resume_path, profile)
+        _fill_easy_apply_step(driver, resume_path, profile, use_linkedin_resume)
         try:
             next_button = driver.find_element(
                 By.XPATH,
