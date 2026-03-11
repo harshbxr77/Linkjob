@@ -1,0 +1,12 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.streamlit/
+.venv/
+data/jobs.db
+data/linkedin_session.enc
+data/browser-profile/
+*.log
