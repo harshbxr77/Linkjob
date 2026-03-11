@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
+import subprocess
 import sys
+import webbrowser
 from urllib.request import urlopen
 from pathlib import Path
 
@@ -28,6 +31,18 @@ def load_public_sync(url: str) -> dict:
         return json.loads(response.read().decode("utf-8"))
 
 
+def is_cloud_environment() -> bool:
+    return ROOT_DIR.as_posix().startswith("/mount/src/")
+
+
+def launch_local_process(*args: str) -> bool:
+    try:
+        subprocess.Popen([sys.executable, *args], cwd=ROOT_DIR)
+        return True
+    except Exception:
+        return False
+
+
 def main() -> None:
     st.set_page_config(page_title="LinkedIn Job Automation", layout="wide")
     st.title("LinkedIn Job Automation")
@@ -36,6 +51,7 @@ def main() -> None:
     preferences = load_preferences(config.preferences_path)
     db_path = DB_PATH
     database = Database(db_path)
+    is_cloud = is_cloud_environment()
 
     with st.sidebar:
         st.header("Preferences")
@@ -50,6 +66,11 @@ def main() -> None:
             max_value=50,
             value=int(preferences["daily_application_limit"]),
         )
+        auto_submit = st.checkbox(
+            "Auto-apply Easy Apply jobs",
+            value=bool(preferences.get("auto_submit", False)),
+            help="When enabled, the local bot will try to submit Easy Apply forms automatically instead of stopping at review.",
+        )
         if st.button("Save preferences", use_container_width=True):
             updated_preferences = {
                 "keywords": [line.strip() for line in keywords_text.splitlines() if line.strip()],
@@ -58,9 +79,31 @@ def main() -> None:
                 "blocked_keywords": [line.strip().lower() for line in blocked_text.splitlines() if line.strip()],
                 "run_times": [part.strip() for part in run_times_text.split(",") if part.strip()],
                 "daily_application_limit": int(daily_limit),
+                "auto_submit": bool(auto_submit),
             }
             save_preferences(updated_preferences, config.preferences_path)
             st.success("Preferences saved for local background runs.")
+
+        st.header("LinkedIn Automation")
+        session_detected = config.session_file.exists() or config.browser_profile_dir.exists()
+        st.caption(f"Saved session detected: {'Yes' if session_detected else 'No'}")
+        st.caption(f"Credentials configured: {'Yes' if bool(config.linkedin_email and config.linkedin_password) else 'No'}")
+        if is_cloud:
+            st.info("LinkedIn login and auto-apply run only from your local machine. The cloud app is dashboard-only.")
+        else:
+            if st.button("Open LinkedIn Login", use_container_width=True):
+                webbrowser.open("https://www.linkedin.com/login")
+                st.success("Opened LinkedIn login page in your default browser.")
+            if st.button("Start Applying Now", use_container_width=True):
+                if launch_local_process("main.py", "run"):
+                    st.success("Started the local LinkedIn bot in the background.")
+                else:
+                    st.error("Could not start the local LinkedIn bot.")
+            if st.button("Start Scheduler Now", use_container_width=True):
+                if launch_local_process("main.py", "scheduler"):
+                    st.success("Started the local scheduler in the background.")
+                else:
+                    st.error("Could not start the local scheduler.")
 
         st.header("Data Sync")
         if st.button("Refresh background sync", use_container_width=True):

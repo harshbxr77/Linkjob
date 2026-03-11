@@ -125,6 +125,7 @@ DEFAULT_PREFERENCES = {
     ],
     "run_times": ["08:00", "20:00"],
     "daily_application_limit": 10,
+    "auto_submit": False,
 }
 
 

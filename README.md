@@ -57,12 +57,21 @@ The local dashboard sidebar now lets you save:
 - blocked keywords
 - run times
 - daily application limit
+- auto-apply mode
 
 These preferences are stored in `data/preferences.json` and used by:
 
 - `python main.py run`
 - `python main.py scheduler`
 - the launcher background scheduler option
+
+The local dashboard also includes:
+
+- `Open LinkedIn Login`
+- `Start Applying Now`
+- `Start Scheduler Now`
+
+Those controls are local-machine only. The deployed Streamlit cloud app remains dashboard-only and cannot directly run Selenium against your LinkedIn account.
 
 ## Start At Login
 

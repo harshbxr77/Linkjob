@@ -78,11 +78,11 @@ def run(dry_run: bool = False) -> None:
                         driver=driver,
                         job_link=job["job_link"],
                         resume_path=config.resume_path,
-                        auto_submit=config.auto_submit,
+                        auto_submit=bool(preferences.get("auto_submit", config.auto_submit)),
                     )
                     if success:
                         database.create_application(job_id, str(config.resume_path), None)
-                        if config.auto_submit:
+                        if bool(preferences.get("auto_submit", config.auto_submit)):
                             database.mark_applied(job["job_link"])
                             applied_today += 1
                         else:
