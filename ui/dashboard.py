@@ -74,6 +74,36 @@ def runtime_blockers(config: AppConfig, preferences: dict) -> list[str]:
     return blockers
 
 
+def setup_status(config: AppConfig, preferences: dict) -> list[tuple[str, bool, str]]:
+    return [
+        (
+            "LinkedIn credentials",
+            config.has_real_credentials(),
+            f"Update LINKEDIN_EMAIL and LINKEDIN_PASSWORD in {ROOT_DIR / '.env'}",
+        ),
+        (
+            "Session key",
+            bool(config.linkedin_session_key),
+            f"Stored in {ROOT_DIR / '.env'}",
+        ),
+        (
+            "Resume file",
+            config.resume_path.exists(),
+            f"Place your resume at {config.resume_path}",
+        ),
+        (
+            "Auto-apply mode",
+            bool(preferences.get('auto_submit', False)),
+            "Enable 'Auto-apply Easy Apply jobs' in the sidebar, then click Save preferences.",
+        ),
+        (
+            "Saved LinkedIn session",
+            config.session_file.exists() or config.browser_profile_dir.exists(),
+            "Click Apply once and complete LinkedIn login locally to create a reusable session.",
+        ),
+    ]
+
+
 def main() -> None:
     st.set_page_config(page_title="LinkedIn Job Automation", layout="wide")
     st.title("LinkedIn Job Automation")
@@ -119,6 +149,11 @@ def main() -> None:
         session_detected = config.session_file.exists() or config.browser_profile_dir.exists()
         st.caption(f"Saved session detected: {'Yes' if session_detected else 'No'}")
         st.caption(f"Credentials configured: {'Yes' if config.has_real_credentials() else 'No'}")
+        with st.expander("Setup checklist", expanded=True):
+            for label, ready, hint in setup_status(config, preferences):
+                st.write(f"{'OK' if ready else 'MISSING'}  {label}")
+                if not ready:
+                    st.caption(hint)
         blockers = runtime_blockers(config, preferences)
         if blockers:
             for blocker in blockers:
