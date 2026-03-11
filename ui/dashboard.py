@@ -16,7 +16,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from config import AppConfig, DB_PATH, load_preferences, save_preferences
+from config import AppConfig, DB_PATH, load_local_settings, load_preferences, save_local_settings, save_preferences
 from database import Database
 
 
@@ -66,7 +66,7 @@ def build_preferences_payload(
 def runtime_blockers(config: AppConfig, preferences: dict) -> list[str]:
     blockers: list[str] = []
     if not config.has_real_credentials():
-        blockers.append("LinkedIn credentials in .env are still placeholder values.")
+        blockers.append("LinkedIn credentials are missing or still placeholder values.")
     if not config.resume_path.exists():
         blockers.append(f"Resume file is missing: {config.resume_path}")
     if not bool(preferences.get("auto_submit", False)):
@@ -79,7 +79,7 @@ def setup_status(config: AppConfig, preferences: dict) -> list[tuple[str, bool, 
         (
             "LinkedIn credentials",
             config.has_real_credentials(),
-            f"Update LINKEDIN_EMAIL and LINKEDIN_PASSWORD in {ROOT_DIR / '.env'}",
+            "Enter email and password in the dashboard or update .env manually.",
         ),
         (
             "Session key",
@@ -89,7 +89,7 @@ def setup_status(config: AppConfig, preferences: dict) -> list[tuple[str, bool, 
         (
             "Resume file",
             config.resume_path.exists(),
-            f"Place your resume at {config.resume_path}",
+            f"Upload your resume in the dashboard or place it at {config.resume_path}",
         ),
         (
             "Auto-apply mode",
@@ -109,12 +109,44 @@ def main() -> None:
     st.title("LinkedIn Job Automation")
 
     config = AppConfig.load()
+    local_settings = load_local_settings(config.local_settings_path)
     preferences = load_preferences(config.preferences_path)
     db_path = DB_PATH
     database = Database(db_path)
     is_cloud = is_cloud_environment()
 
     with st.sidebar:
+        st.header("LinkedIn Account")
+        linkedin_email = st.text_input(
+            "LinkedIn email",
+            value=local_settings.get("linkedin_email", ""),
+            disabled=is_cloud,
+        )
+        linkedin_password = st.text_input(
+            "LinkedIn password",
+            value=local_settings.get("linkedin_password", ""),
+            type="password",
+            disabled=is_cloud,
+        )
+        uploaded_resume = st.file_uploader(
+            "Resume upload",
+            type=["pdf", "doc", "docx"],
+            disabled=is_cloud,
+            help="Uploaded resume is stored locally inside the project and used for Easy Apply.",
+        )
+        if st.button("Save LinkedIn details", use_container_width=True, disabled=is_cloud):
+            updates = {
+                "linkedin_email": linkedin_email.strip(),
+                "linkedin_password": linkedin_password,
+            }
+            if uploaded_resume is not None:
+                target_path = config.local_settings_path.parent / uploaded_resume.name
+                target_path.write_bytes(uploaded_resume.getvalue())
+                updates["resume_path"] = f"./data/{uploaded_resume.name}"
+            save_local_settings(updates, config.local_settings_path)
+            st.success("Saved LinkedIn details locally.")
+            st.rerun()
+
         st.header("Preferences")
         keywords_text = st.text_area("Search keywords", value="\n".join(preferences["keywords"]), height=150)
         locations_text = st.text_area("Locations", value="\n".join(preferences["locations"]), height=100)

@@ -9,6 +9,7 @@ __pycache__/
 data/jobs.db
 data/dashboard_export.json
 data/preferences.json
+data/local_settings.json
 data/linkedin_session.enc
 data/browser-profile/
 *.log

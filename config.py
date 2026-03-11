@@ -18,6 +18,7 @@ EXPORT_PATH = DATA_DIR / "dashboard_export.json"
 PUBLIC_EXPORT_PATH = SYNC_DIR / "dashboard_data.json"
 PREFERENCES_PATH = DATA_DIR / "preferences.json"
 APP_LOG_PATH = DATA_DIR / "app.log"
+LOCAL_SETTINGS_PATH = DATA_DIR / "local_settings.json"
 
 
 def _as_bool(value: str | None, default: bool = False) -> bool:
@@ -47,6 +48,7 @@ class AppConfig:
     public_export_path: Path = field(default=PUBLIC_EXPORT_PATH)
     preferences_path: Path = field(default=PREFERENCES_PATH)
     app_log_path: Path = field(default=APP_LOG_PATH)
+    local_settings_path: Path = field(default=LOCAL_SETTINGS_PATH)
     default_location: str = "India"
 
     @classmethod
@@ -55,10 +57,11 @@ class AppConfig:
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         UI_DIR.mkdir(parents=True, exist_ok=True)
         SYNC_DIR.mkdir(parents=True, exist_ok=True)
+        local_settings = load_local_settings(LOCAL_SETTINGS_PATH)
 
         return cls(
-            linkedin_email=os.getenv("LINKEDIN_EMAIL", ""),
-            linkedin_password=os.getenv("LINKEDIN_PASSWORD", ""),
+            linkedin_email=local_settings.get("linkedin_email", os.getenv("LINKEDIN_EMAIL", "")),
+            linkedin_password=local_settings.get("linkedin_password", os.getenv("LINKEDIN_PASSWORD", "")),
             linkedin_session_key=os.getenv("LINKEDIN_SESSION_KEY", ""),
             openai_api_key=os.getenv("OPENAI_API_KEY"),
             openai_model=os.getenv("OPENAI_MODEL", "gpt-4.1-mini"),
@@ -66,7 +69,7 @@ class AppConfig:
             headless=_as_bool(os.getenv("LINKEDIN_HEADLESS"), default=False),
             auto_submit=_as_bool(os.getenv("LINKEDIN_AUTO_SUBMIT"), default=False),
             daily_application_limit=int(os.getenv("LINKEDIN_DAILY_APPLICATION_LIMIT", "10")),
-            resume_path=(BASE_DIR / os.getenv("RESUME_PATH", "./data/resume.pdf")).resolve(),
+            resume_path=(BASE_DIR / local_settings.get("resume_path", os.getenv("RESUME_PATH", "./data/resume.pdf"))).resolve(),
             browser_profile_dir=(BASE_DIR / os.getenv("LINKEDIN_PROFILE_DIR", "./data/browser-profile")).resolve(),
             auto_push_sync=_as_bool(os.getenv("AUTO_PUSH_SYNC"), default=False),
             public_sync_url=os.getenv(
@@ -158,3 +161,17 @@ def load_preferences(path: Path = PREFERENCES_PATH) -> dict:
 def save_preferences(preferences: dict, path: Path = PREFERENCES_PATH) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(preferences, indent=2), encoding="utf-8")
+
+
+def load_local_settings(path: Path = LOCAL_SETTINGS_PATH) -> dict:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def save_local_settings(settings: dict, path: Path = LOCAL_SETTINGS_PATH) -> None:
+    existing = load_local_settings(path)
+    existing.update(settings)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(existing, indent=2), encoding="utf-8")

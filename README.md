@@ -51,6 +51,9 @@ Each imported application record now keeps:
 
 The local dashboard sidebar now lets you save:
 
+- LinkedIn email
+- LinkedIn password
+- resume upload
 - search keywords
 - locations
 - allowed keywords
@@ -70,6 +73,8 @@ The local dashboard also includes:
 - `Apply`
 
 That control is local-machine only. It opens LinkedIn login if needed and starts the local apply flow. The deployed Streamlit cloud app remains dashboard-only and cannot directly run Selenium against your LinkedIn account.
+
+LinkedIn email, password, and uploaded resume path are stored locally in `data/local_settings.json`, which is ignored by git.
 
 ## Start At Login
 
