@@ -43,6 +43,26 @@ def launch_local_process(*args: str) -> bool:
         return False
 
 
+def build_preferences_payload(
+    keywords_text: str,
+    locations_text: str,
+    allowed_text: str,
+    blocked_text: str,
+    run_times_text: str,
+    daily_limit: int,
+    auto_submit: bool,
+) -> dict:
+    return {
+        "keywords": [line.strip() for line in keywords_text.splitlines() if line.strip()],
+        "locations": [line.strip() for line in locations_text.splitlines() if line.strip()],
+        "allowed_keywords": [line.strip().lower() for line in allowed_text.splitlines() if line.strip()],
+        "blocked_keywords": [line.strip().lower() for line in blocked_text.splitlines() if line.strip()],
+        "run_times": [part.strip() for part in run_times_text.split(",") if part.strip()],
+        "daily_application_limit": int(daily_limit),
+        "auto_submit": bool(auto_submit),
+    }
+
+
 def main() -> None:
     st.set_page_config(page_title="LinkedIn Job Automation", layout="wide")
     st.title("LinkedIn Job Automation")
@@ -72,15 +92,15 @@ def main() -> None:
             help="When enabled, the local bot will try to submit Easy Apply forms automatically instead of stopping at review.",
         )
         if st.button("Save preferences", use_container_width=True):
-            updated_preferences = {
-                "keywords": [line.strip() for line in keywords_text.splitlines() if line.strip()],
-                "locations": [line.strip() for line in locations_text.splitlines() if line.strip()],
-                "allowed_keywords": [line.strip().lower() for line in allowed_text.splitlines() if line.strip()],
-                "blocked_keywords": [line.strip().lower() for line in blocked_text.splitlines() if line.strip()],
-                "run_times": [part.strip() for part in run_times_text.split(",") if part.strip()],
-                "daily_application_limit": int(daily_limit),
-                "auto_submit": bool(auto_submit),
-            }
+            updated_preferences = build_preferences_payload(
+                keywords_text,
+                locations_text,
+                allowed_text,
+                blocked_text,
+                run_times_text,
+                int(daily_limit),
+                bool(auto_submit),
+            )
             save_preferences(updated_preferences, config.preferences_path)
             st.success("Preferences saved for local background runs.")
 
@@ -92,6 +112,16 @@ def main() -> None:
             st.info("LinkedIn login and auto-apply run only from your local machine. The cloud app is dashboard-only.")
         else:
             if st.button("Apply", use_container_width=True, type="primary"):
+                updated_preferences = build_preferences_payload(
+                    keywords_text,
+                    locations_text,
+                    allowed_text,
+                    blocked_text,
+                    run_times_text,
+                    int(daily_limit),
+                    bool(auto_submit),
+                )
+                save_preferences(updated_preferences, config.preferences_path)
                 login_opened = False
                 if not session_detected:
                     try:
@@ -101,9 +131,9 @@ def main() -> None:
                         login_opened = False
                 if launch_local_process("main.py", "run"):
                     if login_opened:
-                        st.success("Opened LinkedIn login and started the local apply flow.")
+                        st.success("Saved preferences, opened LinkedIn login, and started the local apply flow.")
                     else:
-                        st.success("Started the local apply flow.")
+                        st.success("Saved preferences and started the local apply flow.")
                 else:
                     st.error("Could not start the local apply flow.")
 
