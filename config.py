@@ -10,9 +10,11 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 UI_DIR = BASE_DIR / "ui"
+SYNC_DIR = BASE_DIR / "sync"
 SESSION_FILE = DATA_DIR / "linkedin_session.enc"
 DB_PATH = DATA_DIR / "jobs.db"
 EXPORT_PATH = DATA_DIR / "dashboard_export.json"
+PUBLIC_EXPORT_PATH = SYNC_DIR / "dashboard_data.json"
 
 
 def _as_bool(value: str | None, default: bool = False) -> bool:
@@ -34,9 +36,12 @@ class AppConfig:
     daily_application_limit: int
     resume_path: Path
     browser_profile_dir: Path
+    auto_push_sync: bool
+    public_sync_url: str
     db_path: Path = field(default=DB_PATH)
     session_file: Path = field(default=SESSION_FILE)
     export_path: Path = field(default=EXPORT_PATH)
+    public_export_path: Path = field(default=PUBLIC_EXPORT_PATH)
     default_location: str = "India"
 
     @classmethod
@@ -44,6 +49,7 @@ class AppConfig:
         load_dotenv()
         DATA_DIR.mkdir(parents=True, exist_ok=True)
         UI_DIR.mkdir(parents=True, exist_ok=True)
+        SYNC_DIR.mkdir(parents=True, exist_ok=True)
 
         return cls(
             linkedin_email=os.getenv("LINKEDIN_EMAIL", ""),
@@ -57,6 +63,11 @@ class AppConfig:
             daily_application_limit=int(os.getenv("LINKEDIN_DAILY_APPLICATION_LIMIT", "10")),
             resume_path=(BASE_DIR / os.getenv("RESUME_PATH", "./data/resume.pdf")).resolve(),
             browser_profile_dir=(BASE_DIR / os.getenv("LINKEDIN_PROFILE_DIR", "./data/browser-profile")).resolve(),
+            auto_push_sync=_as_bool(os.getenv("AUTO_PUSH_SYNC"), default=False),
+            public_sync_url=os.getenv(
+                "PUBLIC_SYNC_URL",
+                "https://raw.githubusercontent.com/harshbxr77/Linkjob/main/sync/dashboard_data.json",
+            ),
             default_location=os.getenv("DEFAULT_LOCATION", "India"),
         )
 

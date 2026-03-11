@@ -22,15 +22,21 @@ This project provides a Python-based workflow for:
 
 ## Cloud Data Sync
 
-The deployed Streamlit dashboard cannot read your local SQLite file directly. To move your local bot data into the cloud dashboard:
+The deployed Streamlit dashboard cannot read your local SQLite file directly. The project now supports background sync through a GitHub-backed JSON snapshot.
+
+To enable automatic background sync from your local bot to the deployed dashboard:
 
 1. Run the bot locally with `python main.py run`
-2. Export dashboard data with `python main.py export`
-3. This creates `data/dashboard_export.json`
-4. Open the deployed dashboard
-5. Use the sidebar uploader to import that JSON file
+2. Set `AUTO_PUSH_SYNC=true` in `.env`
+3. Make sure your local machine can `git push origin main`
+4. After each run, the bot updates `sync/dashboard_data.json` and pushes it
+5. The deployed dashboard fetches that file automatically in the background
 
-The local bot also refreshes the export file automatically after a normal run.
+Manual export is still available with `python main.py export`.
+This writes:
+
+- `data/dashboard_export.json`
+- `sync/dashboard_data.json`
 
 Each imported application record now keeps:
 

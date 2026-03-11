@@ -209,6 +209,45 @@ class Database:
         )
         return export_path
 
+    def export_public_snapshot(self, export_path: Path) -> Path:
+        with self.connect() as connection:
+            applications = connection.execute(
+                """
+                SELECT
+                    jobs.company,
+                    jobs.job_title,
+                    jobs.role_id,
+                    jobs.job_description,
+                    jobs.date_applied,
+                    jobs.job_link,
+                    jobs.applied_status,
+                    applications.response_status,
+                    jobs.match_score,
+                    jobs.location,
+                    jobs.posted_date
+                FROM jobs
+                LEFT JOIN applications ON applications.job_id = jobs.id
+                WHERE jobs.applied_status IN ('applied', 'reviewed')
+                ORDER BY COALESCE(jobs.date_applied, applications.created_at) DESC, jobs.company ASC
+                """
+            ).fetchall()
+            summary = connection.execute(
+                """
+                SELECT
+                    COUNT(*) AS total_jobs_scanned,
+                    SUM(CASE WHEN applied_status = 'applied' THEN 1 ELSE 0 END) AS jobs_applied,
+                    ROUND(AVG(match_score), 2) AS average_match_score
+                FROM jobs
+                """
+            ).fetchone()
+
+        export_path.parent.mkdir(parents=True, exist_ok=True)
+        export_path.write_text(
+            json.dumps({"summary": summary, "applications": applications}, indent=2),
+            encoding="utf-8",
+        )
+        return export_path
+
     def import_snapshot(self, payload: bytes) -> None:
         data = json.loads(payload.decode("utf-8"))
         jobs = data.get("jobs", [])

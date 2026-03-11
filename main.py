@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
+from pathlib import Path
 
 from config import AppConfig
 from ai_matcher import match_resume_to_job
@@ -85,14 +86,32 @@ def run(dry_run: bool = False) -> None:
         driver.quit()
 
     exported_path = database.export_snapshot(config.export_path)
+    public_export_path = database.export_public_snapshot(config.public_export_path)
     print(f"Dashboard export updated: {exported_path}")
+    print(f"Public dashboard sync updated: {public_export_path}")
+    if config.auto_push_sync:
+        push_sync_file(config.public_export_path)
 
 
 def export_dashboard_data() -> None:
     config = AppConfig.load()
     database = Database(config.db_path)
     exported_path = database.export_snapshot(config.export_path)
+    public_export_path = database.export_public_snapshot(config.public_export_path)
     print(f"Dashboard export written to: {exported_path}")
+    print(f"Public dashboard sync written to: {public_export_path}")
+    if config.auto_push_sync:
+        push_sync_file(config.public_export_path)
+
+
+def push_sync_file(sync_file: Path) -> None:
+    relative_file = sync_file.relative_to(Path(__file__).resolve().parent)
+    subprocess.run(["git", "add", str(relative_file)], check=True)
+    subprocess.run(
+        ["git", "commit", "-m", "Update dashboard sync data"],
+        check=False,
+    )
+    subprocess.run(["git", "push", "origin", "main"], check=True)
 
 
 if __name__ == "__main__":
