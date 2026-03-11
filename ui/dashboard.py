@@ -70,6 +70,24 @@ def main() -> None:
         """,
         db_path,
     )
+    history_df = load_frame(
+        """
+        SELECT
+            jobs.company,
+            jobs.job_title,
+            jobs.role_id,
+            jobs.date_applied,
+            jobs.job_description,
+            jobs.job_link,
+            jobs.applied_status,
+            applications.response_status
+        FROM jobs
+        LEFT JOIN applications ON applications.job_id = jobs.id
+        WHERE jobs.applied_status IN ('applied', 'reviewed')
+        ORDER BY COALESCE(jobs.date_applied, applications.created_at) DESC, jobs.company ASC
+        """,
+        db_path,
+    )
     pending_df = load_frame(
         """
         SELECT COUNT(*) AS pending_responses
@@ -96,6 +114,28 @@ def main() -> None:
     with right:
         st.subheader("Top Companies")
         st.dataframe(companies_df, use_container_width=True)
+
+    st.subheader("Application Records")
+    if history_df.empty:
+        st.info("No application records yet.")
+    else:
+        history_df["job_description"] = history_df["job_description"].fillna("").str.slice(0, 600)
+        st.dataframe(
+            history_df.rename(
+                columns={
+                    "company": "Company",
+                    "job_title": "Role",
+                    "role_id": "Role ID",
+                    "date_applied": "Date Applied",
+                    "job_description": "Job Description",
+                    "job_link": "Job Link",
+                    "applied_status": "Status",
+                    "response_status": "Response",
+                }
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
 
 
 if __name__ == "__main__":

@@ -32,6 +32,15 @@ The deployed Streamlit dashboard cannot read your local SQLite file directly. To
 
 The local bot also refreshes the export file automatically after a normal run.
 
+Each imported application record now keeps:
+
+- company
+- role title
+- LinkedIn role ID
+- job description
+- applied date
+- job link
+
 ## Remember Login
 
 The app now reuses your LinkedIn login across runs using:

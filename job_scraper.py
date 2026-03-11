@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import re
 import time
 from urllib.parse import quote_plus
 
@@ -49,6 +50,11 @@ def _extract_description(driver: WebDriver) -> str:
     return ""
 
 
+def extract_role_id(job_link: str) -> str:
+    match = re.search(r"/jobs/view/(\d+)", job_link)
+    return match.group(1) if match else ""
+
+
 def search_jobs(driver: WebDriver, keyword: str, location: str) -> None:
     encoded_keyword = quote_plus(keyword)
     encoded_location = quote_plus(location)
@@ -88,6 +94,7 @@ def scrape_jobs(driver: WebDriver, keyword: str, location: str, limit: int = 20)
                     "location": _safe_text(card, ".//*[contains(@class,'job-search-card__location')]"),
                     "job_description": _extract_description(driver),
                     "job_link": job_link,
+                    "role_id": extract_role_id(job_link),
                     "easy_apply": "Easy Apply" in card.text,
                     "posted_date": _safe_text(card, ".//time"),
                 }

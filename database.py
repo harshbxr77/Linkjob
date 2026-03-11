@@ -33,6 +33,7 @@ class Database:
                 """
                 CREATE TABLE IF NOT EXISTS jobs (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    role_id TEXT,
                     job_title TEXT NOT NULL,
                     company TEXT NOT NULL,
                     location TEXT,
@@ -56,17 +57,21 @@ class Database:
                 );
                 """
             )
+            columns = {row["name"] for row in connection.execute("PRAGMA table_info(jobs)").fetchall()}
+            if "role_id" not in columns:
+                connection.execute("ALTER TABLE jobs ADD COLUMN role_id TEXT")
 
     def upsert_job(self, job: dict[str, Any]) -> int:
         with self.connect() as connection:
             cursor = connection.execute(
                 """
                 INSERT INTO jobs (
-                    job_title, company, location, job_description, job_link,
+                    role_id, job_title, company, location, job_description, job_link,
                     easy_apply, posted_date, match_score, applied_status, date_applied
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(job_link) DO UPDATE SET
+                    role_id=COALESCE(excluded.role_id, jobs.role_id),
                     job_title=excluded.job_title,
                     company=excluded.company,
                     location=excluded.location,
@@ -78,6 +83,7 @@ class Database:
                     date_applied=COALESCE(jobs.date_applied, excluded.date_applied)
                 """,
                 (
+                    job.get("role_id"),
                     job["job_title"],
                     job["company"],
                     job.get("location"),
@@ -182,7 +188,7 @@ class Database:
         with self.connect() as connection:
             jobs = connection.execute(
                 """
-                SELECT id, job_title, company, location, job_description, job_link,
+                SELECT id, role_id, job_title, company, location, job_description, job_link,
                        easy_apply, posted_date, match_score, applied_status, date_applied
                 FROM jobs
                 ORDER BY id ASC
@@ -211,6 +217,7 @@ class Database:
 
         for job in jobs:
             normalized_job = {
+                "role_id": job.get("role_id"),
                 "job_title": job["job_title"],
                 "company": job["company"],
                 "location": job.get("location"),
@@ -260,3 +267,23 @@ class Database:
                         application.get("created_at"),
                     ),
                 )
+
+    def applied_job_records(self) -> list[dict[str, Any]]:
+        with self.connect() as connection:
+            return connection.execute(
+                """
+                SELECT
+                    jobs.company,
+                    jobs.job_title,
+                    jobs.role_id,
+                    jobs.job_description,
+                    jobs.date_applied,
+                    jobs.job_link,
+                    jobs.applied_status,
+                    applications.response_status
+                FROM jobs
+                LEFT JOIN applications ON applications.job_id = jobs.id
+                WHERE jobs.applied_status IN ('applied', 'reviewed')
+                ORDER BY COALESCE(jobs.date_applied, applications.created_at) DESC, jobs.company ASC
+                """
+            ).fetchall()
