@@ -8,6 +8,7 @@ __pycache__/
 .venv/
 data/jobs.db
 data/dashboard_export.json
+data/preferences.json
 data/linkedin_session.enc
 data/browser-profile/
 *.log

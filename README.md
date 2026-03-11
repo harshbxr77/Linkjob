@@ -64,6 +64,15 @@ These preferences are stored in `data/preferences.json` and used by:
 - `python main.py scheduler`
 - the launcher background scheduler option
 
+## Start At Login
+
+To register the background scheduler so it starts automatically when you sign in on Windows:
+
+- run `Launch-LinkJob.bat`
+- choose `5. Register startup task`
+
+The app first tries Task Scheduler. If Windows blocks that, the fallback is a Startup-folder launcher under your user profile so the scheduler still starts at sign-in.
+
 ## Remember Login
 
 The app now reuses your LinkedIn login across runs using:

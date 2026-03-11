@@ -12,8 +12,9 @@ Write-Host "1. Run bot"
 Write-Host "2. Open dashboard"
 Write-Host "3. Start scheduler"
 Write-Host "4. Start scheduler in background"
-Write-Host "5. Bootstrap session key"
-Write-Host "6. Dry run"
+Write-Host "5. Register startup task"
+Write-Host "6. Bootstrap session key"
+Write-Host "7. Dry run"
 Write-Host ""
 
 $choice = Read-Host "Select an option"
@@ -23,7 +24,8 @@ switch ($choice) {
     "2" { python main.py dashboard }
     "3" { python main.py scheduler }
     "4" { Start-Process python -ArgumentList 'main.py scheduler' -WorkingDirectory $PSScriptRoot }
-    "5" { python main.py bootstrap }
-    "6" { python main.py run --dry-run }
+    "5" { powershell -ExecutionPolicy Bypass -File ".\register-background-task.ps1" }
+    "6" { python main.py bootstrap }
+    "7" { python main.py run --dry-run }
     default { Write-Host "Invalid option"; exit 1 }
 }
