@@ -91,19 +91,21 @@ def main() -> None:
         if is_cloud:
             st.info("LinkedIn login and auto-apply run only from your local machine. The cloud app is dashboard-only.")
         else:
-            if st.button("Open LinkedIn Login", use_container_width=True):
-                webbrowser.open("https://www.linkedin.com/login")
-                st.success("Opened LinkedIn login page in your default browser.")
-            if st.button("Start Applying Now", use_container_width=True):
+            if st.button("Apply", use_container_width=True, type="primary"):
+                login_opened = False
+                if not session_detected:
+                    try:
+                        webbrowser.open("https://www.linkedin.com/login")
+                        login_opened = True
+                    except Exception:
+                        login_opened = False
                 if launch_local_process("main.py", "run"):
-                    st.success("Started the local LinkedIn bot in the background.")
+                    if login_opened:
+                        st.success("Opened LinkedIn login and started the local apply flow.")
+                    else:
+                        st.success("Started the local apply flow.")
                 else:
-                    st.error("Could not start the local LinkedIn bot.")
-            if st.button("Start Scheduler Now", use_container_width=True):
-                if launch_local_process("main.py", "scheduler"):
-                    st.success("Started the local scheduler in the background.")
-                else:
-                    st.error("Could not start the local scheduler.")
+                    st.error("Could not start the local apply flow.")
 
         st.header("Data Sync")
         if st.button("Refresh background sync", use_container_width=True):

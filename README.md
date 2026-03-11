@@ -67,11 +67,9 @@ These preferences are stored in `data/preferences.json` and used by:
 
 The local dashboard also includes:
 
-- `Open LinkedIn Login`
-- `Start Applying Now`
-- `Start Scheduler Now`
+- `Apply`
 
-Those controls are local-machine only. The deployed Streamlit cloud app remains dashboard-only and cannot directly run Selenium against your LinkedIn account.
+That control is local-machine only. It opens LinkedIn login if needed and starts the local apply flow. The deployed Streamlit cloud app remains dashboard-only and cannot directly run Selenium against your LinkedIn account.
 
 ## Start At Login
 
